@@ -17,13 +17,11 @@ function main() {
     var vertexShaderCode =  `
     attribute vec2 aPosition;
     attribute vec3 aColor;
-    uniform float uTheta;
-    uniform vec2 uDelta;
+    uniform mat4 uModel;
     varying vec3 vColor;
     void main() {
-        float x = -sin(uTheta) * aPosition.x + cos(uTheta) * aPosition.y;
-        float y = cos(uTheta) * aPosition.x + sin(uTheta) * aPosition.y;
-        gl_Position = vec4(x + uDelta.x, y + uDelta.y, 0.0, 1.0);
+        vec2 position = aPosition;
+        gl_Position = uModel * vec4(position, 0.0, 1.0);
         vColor = aColor;
     }
     `;
@@ -58,8 +56,7 @@ function main() {
     var verticalDelta = 0.0;
 
     // Variabel pointer ke GLSL
-    var uTheta = gl.getUniformLocation(shaderProgram, "uTheta");
-    var uDelta = gl.getUniformLocation(shaderProgram, "uDelta");
+    var uModel = gl.getUniformLocation(shaderProgram, "uModel");
 
     // Kita mengajari GPU bagaimana caranya mengoleksi
     //  nilai posisi dari ARRAY_BUFFER
@@ -111,11 +108,13 @@ function main() {
         gl.clear(gl.COLOR_BUFFER_BIT);
         if (!freeze) {
             theta += 0.1;
-            gl.uniform1f(uTheta, theta);
         }
         horizontalDelta += horizontalSpeed;
         verticalDelta -= verticalSpeed;
-        gl.uniform2f(uDelta, horizontalDelta, verticalDelta);
+        var model = glMatrix.mat4.create(); // Membuat matriks identitas
+        glMatrix.mat4.translate(model, model, [horizontalDelta, verticalDelta, 0.0]);
+        glMatrix.mat4.rotateZ(model, model, theta);
+        gl.uniformMatrix4fv(uModel, false, model);
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
         requestAnimationFrame(render);
     }
